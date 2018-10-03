@@ -6,9 +6,9 @@ object Users {
 
   
   def loadUsers={
-    val userfile="/users/jpc/switchdrive/projs/data/jdf/users.csv"
-    //val atts=smile.read.csv(userfile)
-    //smile.data.
+    val userfile="/home/jpc/data/jdf/users.csv"
+    //val userfile="/users/jpc/switchdrive/projs/data/jdf/users.csv"
+
     
     val lines=Source.fromFile(userfile).getLines
     lines.next
