@@ -5,8 +5,10 @@ import spray.json._
 import DefaultJsonProtocol._
 import java.util.Date
 import scala.util.Try
+import java.io.FileWriter
   
-case class Cigarette(datetime:String,context:String,alone:String,driving:String,mood:String,desire:String,necessary:String,resisting:String)
+case class Cigarette(datetime:String,context:String,alone:String,driving:String,
+    mood:String,desire:String,necessary:String,resisting:String)
 /*
 "cigarettes": [
     {"datetime": "2018-03-01T07:29:51.891140", 
@@ -20,7 +22,9 @@ case class Cigarette(datetime:String,context:String,alone:String,driving:String,
      
      */
 
-case class Motivation(start_datetime:String, motivate_pressed:String,motivator:String,distraction:String)
+case class Motivation(start_datetime:String, motivate_pressed:String,
+    motivator:String,distraction:String) {
+}
 /*
  {"helped": [
    {"start_datetime": "2018-03-19T07:46:45.056300", 
@@ -35,6 +39,11 @@ case class Motivation(start_datetime:String, motivate_pressed:String,motivator:S
 object MyJsonProtocol extends DefaultJsonProtocol {
   implicit val colorFormat = jsonFormat8(Cigarette)
   implicit val motivationFormat = jsonFormat4(Motivation)
+  def read(value: JsValue) = value match {
+      case JsObject(Map("datetime"->JsString(name), "notivate_pressed"->JsNumber(red))) =>
+        Motivation("","","","")
+      case _ => deserializationError("Color expected")       
+  }
 }
 
 object Events {
@@ -62,7 +71,15 @@ object Events {
   
    import MyJsonProtocol._
    
+   
+   
+   
   def main(args:Array[String])={
+     
+     
+    val timeline=new FileWriter("timeline.csv")
+    
+     
     val trackers=loadEvents.foreach(event=>event.stage match {
           
       case "tracker" => 
@@ -72,7 +89,8 @@ object Events {
           cigaretteList.elements foreach {cig=>
             Try(cig.convertTo[Cigarette]) map {cigarette=>            
               val datetime=cigarette.datetime
-              println(s"${event.hash},cigarette,$datetime")
+              //println(s"${event.hash},cigarette,$datetime")
+              timeline.write(s"${event.hash},cigarette,$datetime\n")
             }
           }
         }
@@ -84,16 +102,21 @@ object Events {
         motivateList.elements foreach {motivate=>
           Try(motivate.convertTo[Motivation]) map{ mot =>
             println(s"${event.hash},cessation,${mot.start_datetime}")
+            timeline.write(s"${event.hash},cessation,${mot.start_datetime}\n")
           }
         }
       
       case _ =>
-        println(s"${event.hash},${event.stage}")
+        //println(s"${event.hash},${event.stage}")
     })
     //val males= loadUsers.filter(u=>u.gender=="male").size
     //println(s"cigarettes tracking: $trackers")
     //rintln(s"male: $males")
-  }
+  
+   timeline.close()
+   }
+   
+   
 }
 
 case class Event(hash:String,stage:String,body:String) {
