@@ -38,11 +38,19 @@ case class Motivation(start_datetime:String, motivate_pressed:String,
 
 object MyJsonProtocol extends DefaultJsonProtocol {
   implicit val colorFormat = jsonFormat8(Cigarette)
-  implicit val motivationFormat = jsonFormat4(Motivation)
-  def read(value: JsValue) = value match {
-      case JsObject(Map("datetime"->JsString(name), "notivate_pressed"->JsNumber(red))) =>
-        Motivation("","","","")
-      case _ => deserializationError("Color expected")       
+  //implicit val motivationFormat = jsonFormat4(Motivation)
+  implicit object MotivationJsonFormat extends RootJsonFormat[Motivation] {
+    val headers = Seq("start_datetime","motivate_pressed","motivator",
+        "motivator_content","distraction","stop_datetime")
+    def read(value: JsValue) = 
+      value.asJsObject.getFields(headers:_*) match {    
+        case Seq(JsString(datetime), JsString(pressedDatetime), JsString(motivator),
+            JsString(content),JsString(distraction),JsString(stopDatetime)) =>
+          Motivation(datetime,pressedDatetime,motivator,distraction)
+        case _ => deserializationError("Motivation expected")       
+      }
+    
+    def write(m:Motivation)= ???
   }
 }
 
@@ -75,10 +83,9 @@ object Events {
    
    
   def main(args:Array[String])={
-     
-     
+          
     val timeline=new FileWriter("timeline.csv")
-    
+    val motivation=new FileWriter("motivations.csv")
      
     val trackers=loadEvents.foreach(event=>event.stage match {
           
@@ -101,8 +108,11 @@ object Events {
         val motivateList=json.fields("helped").asInstanceOf[JsArray]
         motivateList.elements foreach {motivate=>
           Try(motivate.convertTo[Motivation]) map{ mot =>
-            println(s"${event.hash},cessation,${mot.start_datetime}")
-            timeline.write(s"${event.hash},cessation,${mot.start_datetime}\n")
+            val hash=event.hash
+            println(s"$hash,cessation,${mot.start_datetime}")
+            timeline.write(s"$hash,cessation,${mot.start_datetime}\n")
+            val motivator=mot.motivator.replace("cessation.", "")
+            motivation.write(s"$hash,${mot.start_datetime},${mot.distraction},$motivator\n")
           }
         }
       
@@ -112,7 +122,7 @@ object Events {
     //val males= loadUsers.filter(u=>u.gender=="male").size
     //println(s"cigarettes tracking: $trackers")
     //rintln(s"male: $males")
-  
+   motivation.close()
    timeline.close()
    }
    
